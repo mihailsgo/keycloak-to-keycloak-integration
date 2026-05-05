@@ -1,0 +1,11 @@
+.env
+*.local
+
+# Local tool state
+.claude/
+.playwright-mcp/
+
+# PNG screenshots in repo root are ad-hoc / probe captures; the curated set
+# lives under docs/screenshots/ (committed) and is allowlisted below.
+*.png
+!docs/screenshots/*.png

@@ -1,0 +1,222 @@
+{
+  "realm": "test",
+  "enabled": true,
+  "displayName": "Local Test Realm (Smart-ID via Trustlynx)",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "sslRequired": "external",
+
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+          ]
+        }
+      }
+    ]
+  },
+
+  "authenticationFlows": [
+    {
+      "alias": "first broker login (Smart-ID)",
+      "description": "Smart-ID first broker login - Review Profile disabled (identity already verified by Smart-ID)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-review-profile",
+          "authenticatorConfig": "review-profile-disabled-config",
+          "requirement": "DISABLED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "flowAlias": "User creation or linking (Smart-ID)",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "User creation or linking (Smart-ID)",
+      "description": "Auto-link existing user first (silent); else create a new user.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "flowAlias": "Auto-link existing account (Smart-ID)",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorConfig": "create-unique-user-config",
+          "authenticator": "idp-create-user-if-unique",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "Auto-link existing account (Smart-ID)",
+      "description": "Silent auto-link: trust the IdP identity, attach to existing local user, no password prompt.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-detect-existing-broker-user",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "idp-auto-link",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    }
+  ],
+
+  "authenticatorConfig": [
+    {
+      "alias": "review-profile-disabled-config",
+      "config": {
+        "update.profile.on.first.login": "off"
+      }
+    },
+    {
+      "alias": "create-unique-user-config",
+      "config": {
+        "require.password.update.after.registration": "false"
+      }
+    }
+  ],
+
+  "identityProviders": [
+    {
+      "alias": "trustlynx-smartid",
+      "displayName": "Sign in with Smart-ID",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login (Smart-ID)",
+      "config": {
+        "issuer": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx",
+        "authorizationUrl": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx/protocol/openid-connect/auth",
+        "tokenUrl": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx/protocol/openid-connect/token",
+        "userInfoUrl": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx/protocol/openid-connect/userinfo",
+        "logoutUrl": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx/protocol/openid-connect/logout",
+        "jwksUrl": "https://esign.trustlynx.com/ext-portal-keycloak/auth/realms/trustlynx/protocol/openid-connect/certs",
+        "useJwksUrl": "true",
+        "validateSignature": "true",
+        "clientId": "local-kc-test",
+        "clientSecret": "REPLACE_ME_SECRET",
+        "clientAuthMethod": "client_secret_post",
+        "defaultScope": "openid profile email",
+        "syncMode": "FORCE",
+        "backchannelSupported": "false",
+        "loginHint": "false",
+        "uiLocales": "false",
+        "pkceEnabled": "true",
+        "pkceMethod": "S256",
+        "disableUserInfo": "false"
+      }
+    }
+  ],
+
+  "identityProviderMappers": [
+    {
+      "name": "personCode",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "personCode",
+        "user.attribute": "personCode"
+      }
+    },
+    {
+      "name": "country",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "country",
+        "user.attribute": "country"
+      }
+    },
+    {
+      "name": "firstName",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "firstName",
+        "user.attribute": "firstName"
+      }
+    },
+    {
+      "name": "lastName",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "lastName",
+        "user.attribute": "lastName"
+      }
+    },
+    {
+      "name": "email",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "email",
+        "user.attribute": "email"
+      }
+    },
+    {
+      "name": "authProvider",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim": "authProvider",
+        "user.attribute": "authProvider"
+      }
+    },
+    {
+      "name": "username",
+      "identityProviderAlias": "trustlynx-smartid",
+      "identityProviderMapper": "oidc-username-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "template": "${CLAIM.country}.${CLAIM.personCode}",
+        "target": "LOCAL"
+      }
+    }
+  ]
+}
